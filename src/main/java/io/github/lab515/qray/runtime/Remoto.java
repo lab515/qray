@@ -102,7 +102,7 @@ public abstract class Remoto implements Remotee {
 
     public abstract String getConfig(String name);
     // object de-serialization/serialization
-    public abstract <T> T unpack(String packedData, Class t) throws Exception;
+    public abstract <T> T unpack(String packedData, Class optionalClazz) throws Exception;
     public abstract String pack(Object t)throws Exception;
     // dryrun return object if necessary
     public abstract String getOutput() throws Exception;
@@ -332,10 +332,10 @@ public abstract class Remoto implements Remotee {
         // // pd 0: methods, 1: files, 2: object fields info!!!
         // set the transferred files
         _q_data = unpackData(segs[1]);
-        Method errorHandler = null;
         LinkedHashMap<String, Method> map = new LinkedHashMap<String, Method>();
         Class cclz = _q_target.getClass();
         LinkedList<Class> clses = new LinkedList<Class>();
+        //Method errorHandler = null;
         while (cclz != null && cclz != Remotee.class && cclz != Remoto.class && cclz != Object.class) {
             // FIX for ADF, this is a hard coded stuff
             // QInvoker regression, add a special logic to check Remotable annoation
@@ -343,16 +343,17 @@ public abstract class Remoto implements Remotee {
             try{
                 for (Method m : cclz.getDeclaredMethods()) {
                     map.put(m.toGenericString(), m);
-                    if (m.getName().equals("onError") && Modifier.isPublic(m.getModifiers()) && !Modifier.isStatic(m.getModifiers()) && m.getReturnType() != null && m.getReturnType().equals(String.class)) {
-                        Class[] ss = m.getParameterTypes();
-                        if (ss != null && ss.length == 1 && ss[0].equals(Throwable.class)) {
-                            errorHandler = m;
-                        }
-                    }
+                    //if (m.getName().equals("onError") && Modifier.isPublic(m.getModifiers()) && !Modifier.isStatic(m.getModifiers()) && m.getReturnType() != null && m.getReturnType().equals(String.class)) {
+                    //    Class[] ss = m.getParameterTypes();
+                    //    if (ss != null && ss.length == 1 && ss[0].equals(Throwable.class)) {
+                    //        errorHandler = m;
+                    //    }
+                    //}
                 }
             }catch(Throwable t){}
             cclz = cclz.getSuperclass();
         }
+
 
         // set object attrs
         try{
@@ -444,18 +445,15 @@ public abstract class Remoto implements Remotee {
                     ByteArrayOutputStream baos = null;
                     PrintStream ps = null;
                     try {
-
-                        if (errorHandler != null)
-                            result[i * C_RESULTS] = e.getClass().getName() + ":::"
-                                    + errorHandler.invoke(Modifier.isStatic(errorHandler.getModifiers()) ? null : _q_target, e);
-                        else {
-                            baos = new ByteArrayOutputStream();
-                            ps = new PrintStream(baos);
-                            e.printStackTrace(ps);
-                            result[i * C_RESULTS] = baos.toString("utf-8");
-                        }
+                        //if (errorHandler != null)
+                        result[i * C_RESULTS] = pack(e);
+                                    //+ errorHandler.invoke(Modifier.isStatic(errorHandler.getModifiers()) ? null : _q_target, e);
                     } catch (Exception e2) {
-                        result[i * C_RESULTS] = "handling exception: " + e.getClass().getSimpleName() + ":" + e.getMessage() + " failed: " + e2.getClass().getSimpleName() + ":" + e2.getMessage();
+                        baos = new ByteArrayOutputStream();
+                        ps = new PrintStream(baos);
+                        e.printStackTrace(ps);
+                        result[i * C_RESULTS] = baos.toString("utf-8");
+                        //result[i * C_RESULTS] = "handling exception: " + e.getClass().getSimpleName() + ":" + e.getMessage() + " failed: " + e2.getClass().getSimpleName() + ":" + e2.getMessage();
                     } finally {
                         try {
                             if (ps != null)ps.close();

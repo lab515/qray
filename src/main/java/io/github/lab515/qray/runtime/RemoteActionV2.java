@@ -460,24 +460,20 @@ public class RemoteActionV2 {
 		}
 	    return t;
 	}
+
 	private Exception handleException(String err) {
-	    int p = err.indexOf(":::"); // this is the agreement
-        Exception ret = null;
-        if(p > 0){
-            String excData = err.substring(p+3);
-            String excCls = err.substring(0,p);
-            try{
-                ret = Config.getRemoteHandler().onError(excCls, excData);
-            }catch(Exception e){
-                try{
-                    ret = Config.getRemoteHandler().onError("java.lang.Exception", excData);
-                }catch(Exception e2){
-                    e2.printStackTrace();
-                }
-            }
-        }
-        if(ret == null) ret = new Exception(err.length() > 200 ? err.substring(0,200) + "..."  : err);
-        return ret;
+	    Exception ret = null;
+			try{
+					ret = caseObj.getStub().unpack(err, null);
+			}catch(Exception e){
+					try{
+						ret = caseObj.getStub().unpack(err, Exception.class);
+					}catch(Exception e2){
+						e2.printStackTrace();
+					}
+			}
+			if(ret == null) ret = new Exception(err.length() > 200 ? err.substring(0,200) + "..."  : err);
+			return ret;
 	}
 	
 	private Method getTestMethod(String shortName, Class clazz, Object[] paras, boolean isStatic){
@@ -747,8 +743,12 @@ public class RemoteActionV2 {
                 // FIX 2018-02-06, for non qray case, skip the framework call, this has to go into those mud holes
                 String testClsName = null;
                 if(testNGMode){
-                    Object[] insts = (Object[])paras[0];
-                    testClsName = insts[(Integer)paras[1]].getClass().getName();
+                  if(paras[0] != null && paras[0].getClass().isArray()) {
+                    Object[] insts = (Object[]) paras[0];
+                    testClsName = insts[(Integer) paras[1]].getClass().getName();
+                  }else if(paras[0] != null){
+                    testClsName = paras[0].getClass().getName();
+                  }
                 }else{
                     // for junit, call it's method and make sure it has
                     Method tm = getTestMethod("getName",runner.getClass(),null,false);

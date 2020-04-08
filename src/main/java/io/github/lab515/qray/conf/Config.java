@@ -161,7 +161,7 @@ public class Config {
 		"org.testng.internal.Invoker.runTestListeners",
 		"org.testng.TestRunner.addPassedTest",
 		// testng and junit
-		"org.junit.runners.ParentRunner.run",
+		"org.junit.runners.ParentRunner.runLeaf",
 		"org.junit.internal.runners.statements.InvokeMethod.evaluate",
 		"org.junit.runner.notification.RunNotifier.fireTestFinished",
 		"org.junit.runner.notification.RunNotifier.fireTestStarted",

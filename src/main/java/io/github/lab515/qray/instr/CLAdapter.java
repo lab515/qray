@@ -1,13 +1,17 @@
 package io.github.lab515.qray.instr;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.management.ManagementFactory;
+import java.net.URL;
 import java.security.ProtectionDomain;
+
+import com.sun.tools.attach.VirtualMachine;
 import io.github.lab515.qray.conf.Config;
 import jdk.internal.org.objectweb.asm.ClassReader;
 import jdk.internal.org.objectweb.asm.ClassVisitor;
@@ -162,7 +166,7 @@ public class CLAdapter extends ClassVisitor {
 		}
 
 	}
-	public static boolean _inited = false;
+	public static volatile boolean _inited = false;
 
 	private static byte[] instrument(byte[] data, ClassLoader cl, int type){
 		try{
@@ -183,6 +187,15 @@ public class CLAdapter extends ClassVisitor {
 	public static void agentmain(String agentArgument, Instrumentation inst) throws Exception 
     {
 	    premain(agentArgument,inst);
+	    Class[] cls = inst.getAllLoadedClasses();
+	    if(cls != null){
+	    	// we have to loop through the loaded class and retransform
+				for(Class cl : cls){
+					if(Config.matchClass(cl.getName(),-1) > 0) {
+						inst.retransformClasses(cl);
+					}
+				}
+			}
     }
 	
 	public static void premain(String agentArgument, 
@@ -196,17 +209,33 @@ public class CLAdapter extends ClassVisitor {
 		}
     }
 	
-	
+		private static String getMyPath(){
+				try {
+					URL o = CLAdapter.class.getProtectionDomain().getCodeSource().getLocation();
+					if (o.getProtocol() != null && o.getProtocol().equalsIgnoreCase("file") && o.getFile() != null && o.getFile().toLowerCase().endsWith(".jar")) {
+						String path = o.getPath();
+						if(File.separatorChar == '\\'){
+							path = path.substring(1);
+						}
+						return path;
+					}
+					return null;
+				}catch (Exception e){
+					return null;
+				}
+		}
 	// only call it when it's necessary
     public static void initRemoting() throws Exception{
         if(CLAdapter._inited)return;
+        // find out jar path
+				String p = getMyPath();
+				if(p == null)return;
         String pid = getProcessId();
         if(pid == null)return;
-        //VirtualMachine vm = null;  
-        //String agentjarpath = "C:\\Users\\I073290\\.ivy2\\cache\\io.github.lab515\\qraylib\\jars\\qraylib-1.0.4.jar";
-        //vm = VirtualMachine.attach(pid);  
-        //vm.loadAgent(agentjarpath, "");  
-        //vm.detach(); 
+        VirtualMachine vm = null;
+        vm = VirtualMachine.attach(pid);
+        vm.loadAgent(p, "");
+        vm.detach();
     }
     
     private static String getProcessId(){
@@ -219,6 +248,6 @@ public class CLAdapter extends ClassVisitor {
     
     public static void main(String[] argsx) throws Exception{
         initRemoting();
-        Config.getRemoteHandler().log(getProcessId());
+				Thread.sleep(5000);
     }
 }

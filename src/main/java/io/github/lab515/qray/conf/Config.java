@@ -18,15 +18,16 @@ public class Config {
 	        
 	private static final Pattern classTestNGFilter = Pattern.compile("org\\.testng\\.internal\\.Invoker|org\\.testng\\.TestRunner");
 	private static final Pattern classJUnitFilter = Pattern.compile("org\\.junit\\.runner\\.notification\\.RunNotifier|org\\.junit\\.runners\\.ParentRunner|org\\.junit\\.internal\\.runners\\.statements\\.InvokeMethod");
-	
+	private static final String bypassPrfix = "io.github.lab515.qray.";
 	public static final String meClass = Config.class.getName().replace('.', '/');
 	//public static final Exception continuer = new Exception();
 	//public static final String continuerName = "continuer";
 	//public static final String continuerType = "Ljava/lang/Exception;";
-	
-	public static final String qrayFlag = "L" + Remotable.class.getName().replace('.', '/') + ";"; 
+	private static final String remotoClass = "io.github.lab515.qray.runtime.Remoto";
+	private static final String remoteeClass ="io.github.lab515.qray.runtime.Remotee";
+	public static final String qrayFlag = "Lio/github/lab515/qray/runtime/Remotable;";
 	private static final String classJUnitFlag = "Lorg/junit/";
-	private static final String classRemotable = "L" + Remotable.class.getName().replace('.', '/') + ";";
+	private static final String classRemotable = "Lio/github/lab515/qray/runtime/Remotable;";
 	private static final String classTestNGFlag = "Lorg/testng/annotations/";
 	public static final String classTestNGTarget = "org.testng.annotations.Test";
 	public static final String classJUnitTarget = "org.junit.Test";
@@ -84,7 +85,7 @@ public class Config {
     }
 
     public static boolean isRemoteBaseClass(String clsName){
-		return "io.github.lab515.qray.runtime.Remoto".equals(clsName) || "io.github.lab515.qray.runtime.Remotee".equals(clsName);
+		return remotoClass.equals(clsName) || remoteeClass.equals(clsName);
 	}
 
 	public static boolean isValidTestMethod(String annoName){
@@ -233,6 +234,7 @@ public class Config {
 	}
 
 	public static int matchClass(String stdClazz, int level){
+		if(stdClazz.startsWith(bypassPrfix))return 0;
 		if((level & 2)!= 0){
 			Matcher m = Config.classTestNGFilter.matcher(stdClazz);
 			if(m != null && m.matches()){

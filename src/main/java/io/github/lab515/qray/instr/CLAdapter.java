@@ -13,12 +13,7 @@ import java.security.ProtectionDomain;
 
 import com.sun.tools.attach.VirtualMachine;
 import io.github.lab515.qray.conf.Config;
-import jdk.internal.org.objectweb.asm.ClassReader;
-import jdk.internal.org.objectweb.asm.ClassVisitor;
-import jdk.internal.org.objectweb.asm.ClassWriter;
-import jdk.internal.org.objectweb.asm.MethodVisitor;
-import jdk.internal.org.objectweb.asm.Opcodes;
-import jdk.internal.org.objectweb.asm.ClassVisitor;
+import jdk.internal.org.objectweb.asm.*;
 
 /**
  * currently it's only dedicated for testng purpose, for junit, it goes with old fashion
@@ -192,7 +187,12 @@ public class CLAdapter extends ClassVisitor {
 	    	// we have to loop through the loaded class and retransform
 				for(Class cl : cls){
 					if(Config.matchClass(cl.getName(),-1) > 0) {
-						inst.retransformClasses(cl);
+						try {
+							inst.retransformClasses(cl);
+						}catch (Throwable e){
+							System.out.println("error during retansforming " + cl.getName());
+							e.printStackTrace();
+						}
 					}
 				}
 			}
@@ -247,6 +247,8 @@ public class CLAdapter extends ClassVisitor {
     }
     
     public static void main(String[] argsx) throws Exception{
+			System.setProperty("__qrayDefaultClassPattern", "argo\\.remote\\..*");
+		int g = Config.matchClass("org.junit.runners.model.Annotatable", -1);
         initRemoting();
 				Thread.sleep(5000);
     }

@@ -15,7 +15,7 @@ public class Config {
 
 	private static Pattern defaultClassPattern = Pattern.compile(System.getProperty("__qrayDefaultClassPattern") != null ? System.getProperty("__qrayDefaultClassPattern"):
         ".*"); // bydefault we have no limitation
-	        
+	private static final Pattern testFrmkFilter = Pattern.compile("org\\.testng\\..*|org\\.junit\\..*");
 	private static final Pattern classTestNGFilter = Pattern.compile("org\\.testng\\.internal\\.Invoker|org\\.testng\\.TestRunner");
 	private static final Pattern classJUnitFilter = Pattern.compile("org\\.junit\\.runner\\.notification\\.RunNotifier|org\\.junit\\.runners\\.ParentRunner|org\\.junit\\.internal\\.runners\\.statements\\.InvokeMethod");
 	private static final String bypassPrfix = "io.github.lab515.qray.";
@@ -232,7 +232,10 @@ public class Config {
 	    }
 	    return true;
 	}
-
+	private static boolean isTestFrameworkClass(String stdClazz){
+		Matcher m = Config.testFrmkFilter.matcher(stdClazz);
+		return (m != null && m.matches());
+	}
 	public static int matchClass(String stdClazz, int level){
 		if(stdClazz.startsWith(bypassPrfix))return 0;
 		if((level & 2)!= 0){
@@ -245,7 +248,8 @@ public class Config {
 				return M_JUNIT;
 			}
 		}
-		if((level & 1)!= 0 && !isRemoteBaseClass(stdClazz)){
+
+		if((level & 1)!= 0 && !isRemoteBaseClass(stdClazz) && !isTestFrameworkClass(stdClazz)){
 			Matcher m = Config.defaultClassPattern.matcher(stdClazz);
 			if(m != null && m.matches())return M_CASE;
 		}

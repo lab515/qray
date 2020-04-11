@@ -580,12 +580,14 @@ public class ExUtils {
     }
     public static byte[] readClassBytes(Class target,String clsName){
     	String path = "/" + clsName.replace('.', '/') + ".class";
-    	try{
-			Class srcCls = Class.forName(clsName);
-			if(srcCls != null)target = srcCls;
-		}catch(Throwable e){
-			
-		}
+    	if(target == null || !target.getName().equals(clsName) ) {
+        try {
+          Class srcCls = Class.forName(clsName);
+          if (srcCls != null) target = srcCls;
+        } catch (Throwable e) {
+          if(target == null)return null;
+        }
+      }
     	return readClassAllBytes(target, path);
     }
     

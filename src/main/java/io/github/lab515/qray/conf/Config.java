@@ -46,26 +46,30 @@ public class Config {
 	public static synchronized String getInstrLog(){
 	    return sb.toString();
 	}
-	static{
 
+	// method will be called before any remoting again
+	private static void loadConfigFromVM(){
 		//FIX: intelli issue (CommandLineWrapper issue)
 		ClassLoader sys = ClassLoader.getSystemClassLoader();
 		ClassLoader me = Config.class.getClassLoader();
 		while(me != null && me != sys){
 			me = me.getParent();
 		}
+
 		if(me == null){
 			try {
 				// try to find the loader
 				Class me2 = sys.loadClass(Config.class.getName());
 				Field f = me2.getDeclaredField("libRels");
 				f.setAccessible(true);
-				libRels = (LinkedHashMap<String, String>) f.get(null);
+				LinkedHashMap<String, String> lrs = (LinkedHashMap<String, String>) f.get(null);
+				if(lrs != null && (libRels == null || libRels.size() < lrs.size()))libRels = lrs;
 				f = me2.getDeclaredField("validBases");
 				f.setAccessible(true);
-				validBases = (ConcurrentHashMap<String, String>) f.get(null);
+				ConcurrentHashMap<String, String> bases = (ConcurrentHashMap<String, String>) f.get(null);
+				if(bases != null && (validBases == null || validBases.size() < bases.size()))validBases = bases;
 			}catch (Throwable t){
-				t.printStackTrace();
+				//t.printStackTrace();
 			}
 		}
 		if(libRels == null)libRels = new LinkedHashMap<String,String>();
@@ -74,6 +78,9 @@ public class Config {
 			addRemotoClass(Remotee.class.getName(), true);
 			addRemotoClass(Remoto.class.getName(), true); // add remotee for none remoto inherited purpose
 		}
+	}
+	static{
+		loadConfigFromVM();
 	}
 	public static synchronized void instrLog(String s){
 	    sb.append(s);
@@ -295,6 +302,7 @@ public class Config {
 	public static void addRemotoClass(String cls, boolean valid){
 		validBases.put(cls,valid ? "1" : "");
 	}
+
 	public static int getRemotoClass(String cls){
 		String ret = validBases.get(cls);
 		if(ret == null)return -1;

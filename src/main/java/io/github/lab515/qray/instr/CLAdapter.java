@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.instrument.ClassDefinition;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
@@ -13,6 +14,7 @@ import java.security.ProtectionDomain;
 
 import com.sun.tools.attach.VirtualMachine;
 import io.github.lab515.qray.conf.Config;
+import io.github.lab515.qray.utils.ExUtils;
 import jdk.internal.org.objectweb.asm.*;
 
 /**
@@ -156,7 +158,9 @@ public class CLAdapter extends ClassVisitor {
 			// this is simple, only capture the targeted class
 			String stdClzName = className.replace('/', '.');
 			int tp = Config.matchClass(stdClzName,-1);
+			//System.out.println(stdClzName);
 			if(tp <= 0)return null;
+      //System.out.println("instrumenting " + stdClzName);
 			return instrument(classfileBuffer,loader,tp);
 		}
 
@@ -181,20 +185,21 @@ public class CLAdapter extends ClassVisitor {
 	
 	public static void agentmain(String agentArgument, Instrumentation inst) throws Exception 
     {
-	    premain(agentArgument,inst);
-	    Class[] cls = inst.getAllLoadedClasses();
-	    if(cls != null){
-	    	// we have to loop through the loaded class and retransform
-				for(Class cl : cls){
-					if(Config.matchClass(cl.getName(),-1) > 0) {
+    	premain(agentArgument,inst);
+			Class[] cls = inst.getAllLoadedClasses();
+	    if(inst.isRedefineClassesSupported() && cls != null) {
+					// we have to loop through the loaded class and retransform
+					for (Class cl : cls) {
+						if (Config.matchClass(cl.getName(), -1) <= 0)continue;
 						try {
-							inst.retransformClasses(cl);
-						}catch (Throwable e){
-							System.out.println("error during retansforming " + cl.getName());
+							//System.out.println("retransforming " + cl.getName());
+							ClassDefinition cd = new ClassDefinition(cl, ExUtils.readClassBytes(cl, cl.getName()));
+							inst.redefineClasses(cd);
+						} catch (Throwable e) {
+							//System.out.println("error during retansforming " + cl.getName());
 							e.printStackTrace();
 						}
 					}
-				}
 			}
     }
 	
@@ -203,7 +208,7 @@ public class CLAdapter extends ClassVisitor {
 	    if(!Config.getQRayEnabled() || _inited)return;
 	    _inited = true;
 		try{
-			instrumentation.addTransformer(new ClassTrans());
+			instrumentation.addTransformer(new ClassTrans(), true);
 		}catch(Exception e){
 			e.printStackTrace();
 		}

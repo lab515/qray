@@ -84,6 +84,16 @@ public class RemoteActionV2 {
 	private Remotype testType = Remotype.UNDEFINED; // bypassed means if current test is suitable for remoting
 	private boolean testNGMode = false;
 	private Object retVal = null;
+	static{
+		try{
+			Method m = Config.class.getDeclaredMethod("loadConfigFromVM");
+			m.setAccessible(true);
+			m.invoke(null);
+		}catch (Throwable t){
+
+		}
+	}
+
 	private RemoteActionV2(){}
 	
 	private static RemoteActionV2 getMe() throws Exception{
